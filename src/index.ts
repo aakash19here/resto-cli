@@ -13,6 +13,7 @@ program
   .option("-l, --ls  [value]", "List directory contents")
   .option("-m, --mkdir <value>", "Create a directory")
   .option("-t, --touch <value>", "Create a file")
+  .option("-n, --name <value>", "Call your name")
   .parse(process.argv);
 
 const options = program.opts();
@@ -42,6 +43,10 @@ function createDir(filepath: string) {
   }
 }
 
+function printName(name: string) {
+  console.log(`Hey ${name}`);
+}
+
 function createFile(filepath: string) {
   fs.openSync(filepath, "w");
   console.log("An empty file has been created");
@@ -58,4 +63,8 @@ if (options.mkdir) {
 }
 if (options.touch) {
   createFile(path.resolve(__dirname, options.touch));
+}
+
+if (options.name) {
+  printName(options.name);
 }
