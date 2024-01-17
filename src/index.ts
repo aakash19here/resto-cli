@@ -1,3 +1,5 @@
+#! /usr/bin/env node
+
 import { Command } from "commander";
 import figlet from "figlet";
 import fs from "fs";
@@ -5,7 +7,7 @@ import path from "path";
 
 const program: Command = new Command();
 
-console.log(figlet.textSync("Resto AI"));
+console.log(figlet.textSync("DirManager"));
 
 program
   .version("1.0.0")
