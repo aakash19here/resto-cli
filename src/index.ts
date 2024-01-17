@@ -11,7 +11,7 @@ console.log(figlet.textSync("DirManager"));
 
 program
   .version("1.0.0")
-  .description("Paste a resto url to scrape the data from it")
+  .description("View and Create files in a pretty format")
   .option("-l, --ls  [value]", "List directory contents")
   .option("-m, --mkdir <value>", "Create a directory")
   .option("-t, --touch <value>", "Create a file")
@@ -55,16 +55,16 @@ function createFile(filepath: string) {
 }
 
 if (options.ls) {
-  const filepath = typeof options.ls === "string" ? options.ls : __dirname;
+  const filepath = typeof options.ls === "string" ? options.ls : process.cwd();
   listDirContents(filepath);
 }
 
 // add the following code
 if (options.mkdir) {
-  createDir(path.resolve(__dirname, options.mkdir));
+  createDir(path.resolve(process.cwd(), options.mkdir));
 }
 if (options.touch) {
-  createFile(path.resolve(__dirname, options.touch));
+  createFile(path.resolve(process.cwd(), options.touch));
 }
 
 if (options.name) {
