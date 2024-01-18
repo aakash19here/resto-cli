@@ -4,7 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "bin": {
-    "dirmanager": "./dist/index.js"
+    "resto": "./dist/index.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -15,7 +15,9 @@
   "license": "ISC",
   "dependencies": {
     "commander": "^11.1.0",
-    "figlet": "^1.7.0"
+    "crawlee": "^3.7.2",
+    "figlet": "^1.7.0",
+    "playwright": "^1.41.0"
   },
   "devDependencies": {
     "@types/figlet": "^1.5.8",

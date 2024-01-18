@@ -2,71 +2,98 @@
 
 import { Command } from "commander";
 import figlet from "figlet";
-import fs from "fs";
-import path from "path";
+import { PlaywrightCrawler, Dataset } from "crawlee";
+
+const crawler = new PlaywrightCrawler({
+  requestHandler: async ({ page, request, enqueueLinks }) => {
+    console.log(`Processing: ${request.url}`);
+    if (request.label === "DETAIL") {
+      const urlPart = request.url.split("/").slice(-1); // ['sennheiser-mke-440-professional-stereo-shotgun-microphone-mke-440']
+      const manufacturer = urlPart[0].split("-")[0]; // 'sennheiser'
+
+      const title = await page.locator(".product-meta h1").textContent();
+      const sku = await page
+        .locator("span.product-meta__sku-number")
+        .textContent();
+
+      const priceElement = page
+        .locator("span.price")
+        .filter({
+          hasText: "$",
+        })
+        .first();
+
+      const currentPriceString = await priceElement.textContent();
+      const rawPrice = currentPriceString?.split("$")[1];
+      const inStockElement = page
+        .locator("span.product-form__inventory")
+        .filter({
+          hasText: "In stock",
+        })
+        .first();
+
+      const inStock = (await inStockElement.count()) > 0;
+
+      const results = {
+        url: request.url,
+        manufacturer,
+        title,
+        sku,
+        currentPrice: rawPrice,
+        availableInStock: inStock,
+      };
+
+      await Dataset.exportToJSON("products");
+
+      console.log(results);
+    } else if (request.label === "CATEGORY") {
+      // We are now on a category page. We can use this to paginate through and enqueue all products,
+      // as well as any subsequent pages we find
+
+      await page.waitForSelector(".product-item > a");
+      await enqueueLinks({
+        selector: ".product-item > a",
+        label: "DETAIL", // <= note the different label
+      });
+
+      // Now we need to find the "Next" button and enqueue the next page of results (if it exists)
+      const nextButton = await page.$("a.pagination__next");
+      if (nextButton) {
+        await enqueueLinks({
+          selector: "a.pagination__next",
+          label: "CATEGORY", // <= note the same label
+        });
+      }
+    } else {
+      // This means we're on the start page, with no label.
+      // On this page, we just want to enqueue all the category pages.
+
+      await page.waitForSelector(".collection-block-item");
+      await enqueueLinks({
+        selector: ".collection-block-item",
+        label: "CATEGORY",
+      });
+    }
+  },
+
+  // Let's limit our crawls to make our tests shorter and safer.
+  maxRequestsPerCrawl: 50,
+});
 
 const program: Command = new Command();
 
-console.log(figlet.textSync("DirManager"));
+console.log(figlet.textSync("Resto AI"));
 
 program
   .version("1.0.0")
-  .description("View and Create files in a pretty format")
-  .option("-l, --ls  [value]", "List directory contents")
-  .option("-m, --mkdir <value>", "Create a directory")
-  .option("-t, --touch <value>", "Create a file")
-  .option("-n, --name <value>", "Call your name")
+  .description("Get the prices for the menu items.")
+  .option("-c, --crawl [value]", "Crawl and scrap data from desired website")
   .parse(process.argv);
 
 const options = program.opts();
 
-//define the following function
-async function listDirContents(filepath: string) {
-  try {
-    const files = await fs.promises.readdir(filepath);
-    const detailedFilesPromises = files.map(async (file: string) => {
-      let fileDetails = await fs.promises.lstat(path.resolve(filepath, file));
-      const { size, birthtime } = fileDetails;
-      return { filename: file, "size(KB)": size, created_at: birthtime };
-    });
-
-    const detailedFiles = await Promise.all(detailedFilesPromises);
-    console.table(detailedFiles);
-  } catch (error) {
-    console.error("Error occurred while reading the directory!", error);
-  }
-}
-
-// create a dir
-function createDir(filepath: string) {
-  if (!fs.existsSync(filepath)) {
-    fs.mkdirSync(filepath);
-    console.log("The directory has been created successfully");
-  }
-}
-
-function printName(name: string) {
-  console.log(`Hey ${name}`);
-}
-
-function createFile(filepath: string) {
-  fs.openSync(filepath, "w");
-  console.log("An empty file has been created");
-}
-
-if (options.ls) {
-  const filepath = typeof options.ls === "string" ? options.ls : process.cwd();
-  listDirContents(filepath);
-}
-
-// add the following code
-if (options.mkdir) {
-  createDir(path.resolve(process.cwd(), options.mkdir));
-}
-if (options.touch) {
-  createFile(path.resolve(process.cwd(), options.touch));
-}
-
-if (options.name) {
-  printName(options.name);
+if (options.crawl) {
+  crawler
+    .run(["https://warehouse-theme-metal.myshopify.com/collections"])
+    .then((data) => console.log(data));
 }
